@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000', // Reemplaza con la URL de tu servidor backend
+  baseURL: 'https://proyectobackend-ld51.onrender.com/', // Reemplaza con la URL de tu servidor backend
 });
 
 api.interceptors.request.use(

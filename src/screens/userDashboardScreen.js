@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Asegúrate de instalar la biblioteca de iconos vectoriales
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import api from '../services/api';
 
-const UserDashboardScreen = ({ navigation, route }) => {
+const UserDashboardScreen = ({ navigation, route, userId }) => {
   const [envios, setEnvios] = useState([]);
 
   useEffect(() => {
@@ -22,7 +23,7 @@ const UserDashboardScreen = ({ navigation, route }) => {
 
   const fetchEnvios = async () => {
     try {
-      const response = await api.get('/envios');
+      const response = await api.get('/envios'); // No es necesario pasar userId aquí
       setEnvios(response.data);
     } catch (error) {
       console.error('Error fetching envios:', error);
@@ -40,15 +41,15 @@ const UserDashboardScreen = ({ navigation, route }) => {
   const renderEnvioItem = ({ item }) => {
     const estados = ['pendiente', 'enviado', 'en camino', 'entregado', 'cancelado'];
     const estadoIndex = estados.indexOf(item.estado.toLowerCase());
-    
+
     return (
       <View style={styles.envioItem}>
         <View style={styles.estadoContainer}>
           <View style={styles.linea} />
           {estados.map((e, index) => (
             <View key={index} style={styles.estadoItem}>
-              <Ionicons
-                name={index <= estadoIndex ? 'ios-truck' : 'ios-truck-outline'}
+              <FontAwesome6
+                name={index <= estadoIndex ? 'truck-fast' : 'truck-fast'}
                 size={24}
                 color={index <= estadoIndex ? '#4C1F99' : '#ccc'}
               />
@@ -74,7 +75,7 @@ const UserDashboardScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Listado de Envíos</Text>
       <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('CreateEnvio')}>
         <Ionicons name="add-circle-outline" size={24} color="#fff" />
@@ -86,7 +87,21 @@ const UserDashboardScreen = ({ navigation, route }) => {
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContent}
       />
-    </View>
+      <View style={styles.footerContainer}>
+        <Text style={styles.footerText}>
+          El sitio www.corporacióngloma.com cuenta con licencia otorgada a favor del Ministerio de Transportes. Todos los derechos reservados. En Perú está sujeto a los términos y condiciones de este sitio.
+        </Text>
+        <Text style={styles.footerText}>
+         Gracias por confiar en Corporación GLOMA
+        </Text>
+        <Text style={styles.footerText}>
+          Contacto: atencionalcliente@corporacióngloma.com
+        </Text>
+        <Text style={styles.footerText}>
+          © 2014 - 2024 corporacióngloma.com
+        </Text>
+      </View>
+    </ScrollView>
   );
 };
 
@@ -193,6 +208,19 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  footerContainer: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderColor: '#ccc',
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 4,
   },
 });
 

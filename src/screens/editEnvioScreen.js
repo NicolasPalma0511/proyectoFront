@@ -4,17 +4,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
 
 const EditEnvioScreen = ({ navigation, route }) => {
-  const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [loading, setLoading] = useState(false); // Estado para controlar la carga
+  const [toneladas, setToneladas] = useState('');
+  const [precio, setPrecio] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadEnvio(); // Carga los datos del envío al iniciar el componente
+    loadEnvio();
   }, []);
 
   const loadEnvio = async () => {
     try {
-      setLoading(true); // Inicia la carga
+      setLoading(true);
 
       const token = await AsyncStorage.getItem('token');
       if (!token) {
@@ -27,43 +28,51 @@ const EditEnvioScreen = ({ navigation, route }) => {
         },
       });
 
-      const { nombre, descripcion } = response.data;
-      setNombre(nombre);
+      const { descripcion, toneladas, precio } = response.data;
       setDescripcion(descripcion);
+      setToneladas(toneladas.toString());
+      setPrecio(precio.toString());
     } catch (error) {
       console.error('Error fetching envío:', error);
       Alert.alert('Error', 'Hubo un problema al cargar los detalles del envío.');
     } finally {
-      setLoading(false); // Finaliza la carga
+      setLoading(false);
     }
   };
 
   const handleUpdateEnvio = async () => {
     try {
-      setLoading(true); // Inicia la carga
-  
+      setLoading(true);
+
       const token = await AsyncStorage.getItem('token');
       if (!token) {
         throw new Error('No token found');
       }
-  
+
+      // Calcular el precio basado en las toneladas ingresadas por el usuario
+      const toneladasFloat = parseFloat(toneladas);
+      const precioCalculado = toneladasFloat * 100; // Ejemplo de cálculo ficticio en el frontend
+
+      // Actualizar el estado del precio calculado
+      setPrecio(precioCalculado.toFixed(2)); // Ajustar el formato según tus necesidades
+
       const response = await api.patch(`/envios/${route.params.envioId}`, {
-        nombre,
-        descripcion,
+        toneladas: toneladasFloat,
+        precio: precioCalculado,
       }, {
         headers: {
           'x-auth-token': token,
         },
       });
-  
+
       console.log('Envío actualizado exitosamente:', response.data);
       Alert.alert('Éxito', 'Envío actualizado exitosamente');
-      navigation.navigate('UserDashboard', { refresh: true }); // Aquí es crucial enviar el parámetro refresh
+      navigation.navigate('UserDashboard', { refresh: true });
     } catch (error) {
       console.error('Error updating envío:', error);
       Alert.alert('Error', 'Hubo un problema al actualizar el envío.');
     } finally {
-      setLoading(false); // Finaliza la carga
+      setLoading(false);
     }
   };
 
@@ -78,16 +87,6 @@ const EditEnvioScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Nombre:</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ingrese el nombre"
-          value={nombre}
-          onChangeText={setNombre}
-        />
-      </View>
-      
-      <View style={styles.inputContainer}>
         <Text style={styles.label}>Descripción:</Text>
         <TextInput
           style={[styles.input, styles.descriptionInput]}
@@ -96,6 +95,17 @@ const EditEnvioScreen = ({ navigation, route }) => {
           onChangeText={setDescripcion}
           multiline
           numberOfLines={4}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Toneladas:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ingrese las toneladas"
+          value={toneladas}
+          onChangeText={setToneladas}
+          keyboardType="numeric"
         />
       </View>
 

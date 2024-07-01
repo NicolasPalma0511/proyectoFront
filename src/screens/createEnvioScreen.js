@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Alert, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { View, TextInput, Button, Alert, StyleSheet, Text, TouchableOpacity, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import api from '../services/api';
 
 const CreateEnvioScreen = ({ navigation }) => {
   const [nombre, setNombre] = useState('');
+  const [apellidos, setApellidos] = useState('');
+  const [dni, setDni] = useState('');
+  const [numeroOperacion, setNumeroOperacion] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [destino, setDestino] = useState('Lima'); // Destino inicial: Lima
-  const [toneladas, setToneladas] = useState('1'); // Toneladas iniciales: 1
-  const [precio, setPrecio] = useState(0); // Estado para almacenar el precio
+  const [destino, setDestino] = useState('Lima');
+  const [toneladas, setToneladas] = useState('1');
+  const [precio, setPrecio] = useState(0);
+  const [error, setError] = useState('');
 
-  const estado = 'pendiente'; // Estado fijo: pendiente
+  const estado = 'pendiente';
 
-  // Función para calcular el precio basado en el destino y las toneladas
   const calcularPrecio = (destino, toneladas) => {
     let precioBase = 0;
     switch (destino) {
@@ -26,62 +29,60 @@ const CreateEnvioScreen = ({ navigation }) => {
       case 'Trujillo':
         precioBase = 75;
         break;
-      case 'Arequipa':
-        precioBase = 120;
-        break;
       default:
         precioBase = 0;
     }
-
-    // Convertir las toneladas a número y calcular el precio
     const toneladasNumber = parseFloat(toneladas);
     const precioFinal = precioBase * toneladasNumber;
     return precioFinal;
   };
 
-  // Función para manejar la creación del envío
   const handleCreateEnvio = async () => {
     try {
+      // Validar que todos los campos estén llenos
+      if (!nombre || !apellidos || !dni || !numeroOperacion || !descripcion || !toneladas) {
+        throw new Error('Por favor complete todos los campos');
+      }
+
       const token = await AsyncStorage.getItem('token');
       if (!token) {
         throw new Error('No se encontró token');
       }
 
-      const response = await api.post('/envios', { 
-        nombre,
+      const formData = {
         descripcion,
         destino,
         estado,
-        precio,
-        toneladas: parseFloat(toneladas), // Convertir las toneladas a número antes de enviar
-      }, {
+        precio: parseFloat(precio), // Asegurarse de que precio sea un número
+        toneladas: parseFloat(toneladas),
+        nombreUsuario: nombre,
+        apellidoUsuario: apellidos,
+        nmrOperacion: numeroOperacion,
+      };
+
+      const response = await api.post('/envios', formData, {
         headers: {
           'x-auth-token': token,
+          'Content-Type': 'application/json',
         },
       });
 
       console.log('Envío creado exitosamente:', response.data);
       Alert.alert('Éxito', 'Envío creado exitosamente');
-      navigation.navigate('UserDashboard', { refresh: true }); // Navegar de vuelta y enviar la señal de actualización
+      navigation.navigate('UserDashboard', { refresh: true });
     } catch (error) {
-      console.error('Error al crear envío:', error);
-      if (error.response) {
-        console.error('Datos de respuesta:', error.response.data);
-        console.error('Estado de respuesta:', error.response.status);
-        console.error('Encabezados de respuesta:', error.response.headers);
-      }
-      Alert.alert('Error', 'Hubo un problema al crear el envío.');
+      console.error('Error al crear envío:', error.message);
+      setError(error.message); // Guardar el mensaje de error
+      Alert.alert('Error', error.message);
     }
   };
 
-  // Función para actualizar el precio cuando cambia el destino o las toneladas
   const handleDestinoChange = (itemValue) => {
     setDestino(itemValue);
     const nuevoPrecio = calcularPrecio(itemValue, toneladas);
     setPrecio(nuevoPrecio);
   };
 
-  // Función para manejar el cambio en la entrada de toneladas
   const handleToneladasChange = (inputValue) => {
     setToneladas(inputValue);
     const nuevoPrecio = calcularPrecio(destino, inputValue);
@@ -89,7 +90,7 @@ const CreateEnvioScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Crear Envío</Text>
       
       <View style={styles.inputContainer}>
@@ -103,6 +104,38 @@ const CreateEnvioScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.inputContainer}>
+        <Text style={styles.label}>Apellidos:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Apellidos"
+          value={apellidos}
+          onChangeText={setApellidos}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>DNI:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="DNI"
+          value={dni}
+          onChangeText={setDni}
+          keyboardType="numeric"
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={styles.label}>Número de Operación:</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Número de Operación"
+          value={numeroOperacion}
+          onChangeText={setNumeroOperacion}
+          keyboardType="numeric"
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
         <Text style={styles.label}>Descripción:</Text>
         <TextInput
           style={styles.input}
@@ -112,8 +145,22 @@ const CreateEnvioScreen = ({ navigation }) => {
         />
       </View>
 
+      {/* Campo estático para números de cuenta */}
+      <View style={styles.accountContainer}>
+        <Text style={styles.accountLabel}>Número de Cuenta Interbank:</Text>
+        <Text style={styles.accountText}>8983332412142</Text>
+        <Text style={styles.accountLabel}>Número de CCI:</Text>
+        <Text style={styles.accountText}>00389801333241214244</Text>
+      </View>
+
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Desde: Arequipa</Text> {/* Texto encima de los espacios */}
+        <Text style={styles.label}>Desde:</Text>
+        <Picker
+          style={styles.picker}
+        >
+          <Picker.Item label="Arequipa" value="Arequipa" />
+        </Picker>
+        <Text style={styles.label}>Hacia:</Text>
         <Picker
           selectedValue={destino}
           style={styles.picker}
@@ -122,8 +169,6 @@ const CreateEnvioScreen = ({ navigation }) => {
           <Picker.Item label="Lima" value="Lima" />
           <Picker.Item label="Cusco" value="Cusco" />
           <Picker.Item label="Trujillo" value="Trujillo" />
-          <Picker.Item label="Arequipa" value="Arequipa" />
-          {/* Agregar más destinos según sea necesario */}
         </Picker>
       </View>
 
@@ -138,35 +183,50 @@ const CreateEnvioScreen = ({ navigation }) => {
         />
       </View>
 
-      <Text style={styles.priceLabel}>Precio: S/ {precio}</Text> {/* Mostrar el precio */}
+      <Text style={styles.priceLabel}>Precio: S/ {precio}</Text>
+      
+      {error ? <Text style={styles.errorMessage}>{error}</Text> : null}
       
       <TouchableOpacity style={styles.button} onPress={handleCreateEnvio}>
         <Text style={styles.buttonText}>Crear Envío</Text>
       </TouchableOpacity>
-    </View>
+      
+      <View style={styles.footerContainer}>
+        <Text style={styles.footerText}>
+          El sitio www.corporacióngloma.com cuenta con licencia otorgada a favor del Ministerio de Transportes. Todos los derechos reservados. En Perú está sujeto a los términos y condiciones de este sitio.
+        </Text>
+        <Text style={styles.footerText}>
+         Gracias por confiar en Corporación GLOMA
+        </Text>
+        <Text style={styles.footerText}>
+          Contacto: atencionalcliente@corporacióngloma.com
+        </Text>
+        <Text style={styles.footerText}>
+          © 2014 - 2024 corporacióngloma.com
+        </Text>
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
     backgroundColor: '#f5f5f5',
+    padding: 16,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#333',
+    textAlign: 'center',
   },
   inputContainer: {
-    width: '100%',
-    marginBottom: 8, // Espacio más corto entre los contenedores de entrada
+    marginBottom: 16,
   },
   input: {
-    height: 40, // Altura del input
+    height: 40,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 8,
@@ -187,7 +247,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   picker: {
-    height: 40, // Altura del picker
+    height: 40,
     width: '100%',
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -204,8 +264,9 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 18,
-    marginBottom: 8, // Espacio más corto para el precio
+    marginBottom: 8,
     color: '#333',
+    textAlign: 'center',
   },
   button: {
     backgroundColor: '#E91E63',
@@ -222,11 +283,43 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 5,
+    marginBottom: 16,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  footerContainer: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
+    marginTop: 16,
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  accountContainer: {
+    marginBottom: 16,
+  },
+  accountLabel: {
+    fontSize: 16,
+    marginBottom: 4,
+    color: '#333',
+  },
+  accountText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: 'red',
+    textAlign: 'center',
+    marginBottom: 10,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TextInput, Button, Alert, StyleSheet, Text, ImageBackground, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
@@ -6,8 +6,24 @@ import api from '../services/api';
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setUsername('');
+      setPassword('');
+      setError('');
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   const handleLogin = async () => {
+    if (!username || !password) {
+      setError('Por favor, completa todos los campos.');
+      return;
+    }
+
     try {
       const response = await api.post('/login', { username, password });
       const { token, role } = response.data;
@@ -33,7 +49,7 @@ const LoginScreen = ({ navigation }) => {
         <Text style={styles.subtitle}>Bienvenid@</Text>
         <Text style={styles.description}>Empecemos nuestra ruta juntos</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, error && { borderColor: 'red' }]}
           placeholder="Usuario"
           value={username}
           onChangeText={setUsername}
@@ -42,7 +58,7 @@ const LoginScreen = ({ navigation }) => {
           keyboardType="email-address"
         />
         <TextInput
-          style={styles.input}
+          style={[styles.input, error && { borderColor: 'red' }]}
           placeholder="Contraseña"
           value={password}
           onChangeText={setPassword}
@@ -50,6 +66,7 @@ const LoginScreen = ({ navigation }) => {
           autoCapitalize="none"
           autoCorrect={false}
         />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Iniciar sesión</Text>
         </TouchableOpacity>
@@ -137,6 +154,11 @@ const styles = StyleSheet.create({
   registerLink: {
     color: '#E91E63',
     fontWeight: 'bold',
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+    textAlign: 'center',
   },
 });
 

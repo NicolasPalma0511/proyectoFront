@@ -45,7 +45,7 @@ const App = () => {
         const user = JSON.parse(userString);
         setIsAdmin(user.role === 'admin');
       } else {
-        setIsAdmin(false); // If there's no user, it's not admin
+        setIsAdmin(false);
       }
     } catch (error) {
       console.error('Error fetching user role:', error);
